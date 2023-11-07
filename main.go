@@ -14,15 +14,23 @@ type Login struct {
 
 
 type GameClient struct {
+    conn    *websocket.Conn
     clientID int
     username string
 }
 
-func NewGameClient(username string) *GameClient {
+func newGameClient(conn *websocket.Conn, username string) *GameClient {
     return &GameClient{
         clientID: rand.Intn(Math.MaxInt),
         username: username,
     }
+}
+
+func (c *GameClient) login() error {
+    return c.conn.WriteJSON(Login{
+        ClientID: c.clientID,
+        Username: c.username,
+    })
 }
 
 const wsServerEndpoint = "ws://localhost:4000/ws"
@@ -36,13 +44,13 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
+    c := newGameClient(conn, "David")
+   if err := c.Login(); err != nil {
 
+   }
     for(
 
     )
     fmt.Println("vim-go")
 }
 
-func login(conn *websocket.Conn, data Login) error {
-    return conn.WriteJSON(data)
-}
