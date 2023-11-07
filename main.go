@@ -7,6 +7,24 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type Login struct {
+    ClientID int `json:"clientID"`
+    Username string `json:"username"`
+}
+
+
+type GameClient struct {
+    clientID int
+    username string
+}
+
+func NewGameClient(username string) *GameClient {
+    return &GameClient{
+        clientID: rand.Intn(Math.MaxInt),
+        username: username,
+    }
+}
+
 const wsServerEndpoint = "ws://localhost:4000/ws"
 
 func main() {
@@ -14,11 +32,17 @@ func main() {
         ReadBufferSize: 1024,
         WriteBufferSize: 1024,
     }
-    conn, _,err  := dialer.Dial(wsServerendpoint)
+    conn, _,err  := dialer.Dial(wsServerEndpoint, nil)
     if err != nil {
         log.Fatal(err)
     }
 
+    for(
 
+    )
     fmt.Println("vim-go")
+}
+
+func login(conn *websocket.Conn, data Login) error {
+    return conn.WriteJSON(data)
 }
