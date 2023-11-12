@@ -6,47 +6,48 @@ import (
 	"math/rand"
 
 	"github.com/gorilla/websocket"
+	"github.com/oluwadamilarey/game-server/types"
 )
 
-const wsServerEndpoint = "ws://localhost:4000/ws"
+const wsServerEndpoint = "ws://localhost:40000/ws"
 
 type Login struct {
-    ClientID int `json:"clientID"`
-    Username string `json:"username"`
+	ClientID int    `json:"clientID"`
+	Username string `json:"username"`
 }
 
 type GameClient struct {
-    conn    *websocket.Conn
-    clientID int
-    username string
+	conn     *websocket.Conn
+	clientID int
+	username string
 }
 
 func newGameClient(conn *websocket.Conn, username string) *GameClient {
-    return &GameClient{
-        clientID: rand.Intn(math.MaxInt),
-        username: username,
-    }
+	return &GameClient{
+		clientID: rand.Intn(math.MaxInt),
+		username: username,
+		conn:     conn,
+	}
 }
 
 func (c *GameClient) login() error {
-    return c.conn.WriteJSON(Login{
-        ClientID: c.clientID,
-        Username: c.username,
-    })
+	return c.conn.WriteJSON(types.Login{
+		ClientID: c.clientID,
+		Username: c.username,
+	})
 }
 
 func main() {
-    dialer := websocket.Dialer{
-        ReadBufferSize: 1024,
-        WriteBufferSize: 1024,
-    }
-    conn, _,err  := dialer.Dial(wsServerEndpoint, nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    c := newGameClient(conn, "David")
-    if err := c.login(); err != nil {
-        log.Fatal(err)
-    }
+	dialer := websocket.Dialer{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+	conn, _, err := dialer.Dial(wsServerEndpoint, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	c := newGameClient(conn, "David")
+	if err := c.login(); err != nil {
+		log.Fatal(err)
+	}
 }
-
