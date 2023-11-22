@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
 	"net/http"
 
 	"github.com/anthdm/hollywood/actor"
@@ -11,40 +13,58 @@ import (
 type HTTPServer struct{}
 
 type PlayerSession struct {
-	clientID int
-	username string
-	inLobby  bool
-	conn     *websocket.Conn
+	sessionID int
+	clientID  int
+	inLobby   bool
+	conn      *websocket.Conn
 }
 
 type GameServer struct {
-	ctx *actor.Context
+	ctx      *actor.Context
+	sessions map[*actor.PID]struct{}
 }
 
-func newPlayerSession(clientID int, username string, conn *websocket.Conn) actor.Producer {
+func newPlayerSession(sid int, conn *websocket.Conn) actor.Producer {
 	return func() actor.Receiver {
 		return &PlayerSession{
-			clientID: clientID,
-			username: username,
-			conn:     conn,
-			inLobby:  true,
+			sessionID: sid,
+			conn:      conn,
+			inLobby:   true,
+		}
+	}
+}
+
+func (s *PlayerSession) readLoop() {
+	msg := s.Message().(type)
+
+	for {
+		if err := s.conn.ReadJSON(msg); err != nil {
+			fmt.Println()
+			return
 		}
 	}
 }
 
 // Implement the Receive method for PlayerSession to satisfy the actor.Receiver interface.
-func (ps *PlayerSession) Receive(c *actor.Context) {
+func (s *PlayerSession) Receive(c *actor.Context) {
 	// Handle messages received by PlayerSession here.
+	switch msg := c.Message().(type) {
+	case actor.Started:
+		s.readLoop()
+	}
 }
 
 func newGameServer() actor.Receiver {
-	return &GameServer{}
+	return &GameServer{
+		sessions: make(map[*actor.PID]struct{}),
+	}
 }
 
 func (s *GameServer) Receive(c *actor.Context) {
 	switch msg := c.Message().(type) {
 	case actor.Started:
 		s.startHTTP()
+		s.ctx = c
 		_ = msg
 	}
 }
@@ -65,7 +85,10 @@ func (s *GameServer) handleWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Print("Novel Client trying to connect")
-	fmt.Print(conn)
+	sid := rand.Intn(math.MaxInt)
+	// for each client thats going to make a connection with the server, to spawn a new child server
+	pid := s.ctx.SpawnChild(newPlayerSession(sid, conn), fmt.Sprintf("session_%d", sid))
+	fmt.Printf("client with sid %d and pid %s just connected\n", sid, pid)
 }
 
 func main() {
