@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/anthdm/hollywood/actor"
 	"github.com/gorilla/websocket"
+	"github.com/oluwadamilarey/game-server/types"
 )
 
 type HTTPServer struct{}
@@ -35,20 +37,31 @@ func newPlayerSession(sid int, conn *websocket.Conn) actor.Producer {
 }
 
 func (s *PlayerSession) readLoop() {
-	msg := s.Message().(type)
-
+	var msg types.WSMessage
 	for {
 		if err := s.conn.ReadJSON(msg); err != nil {
 			fmt.Println()
 			return
 		}
+		go s.handleMessage(msg)
+	}
+}
+
+func (s *PlayerSession) handleMessage(msg types.WSMessage) {
+	switch msg.Type {
+	case "login":
+		var loginMsg types.Login
+		if err := json.Unmarshal(msg.Data, &loginMsg); err != nil {
+			panic(err)
+		}
+		fmt.Println(loginMsg)
 	}
 }
 
 // Implement the Receive method for PlayerSession to satisfy the actor.Receiver interface.
 func (s *PlayerSession) Receive(c *actor.Context) {
 	// Handle messages received by PlayerSession here.
-	switch msg := c.Message().(type) {
+	switch c.Message().(type) {
 	case actor.Started:
 		s.readLoop()
 	}
